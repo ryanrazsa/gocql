@@ -440,7 +440,11 @@ func (c *Conn) init(ctx context.Context, dialedHost *DialedHost) error {
 		c.w = newWriteCoalescer(c.conn, c.cfg.ConnectTimeout, c.session.cfg.WriteCoalesceWaitTime, ctx.Done())
 	}
 
-	if c.isScyllaConn() { // ScyllaDB does not support system.peers_v2
+	// system.peers_v2 does not exist on Scylla as a server, regardless of whether
+	// the driver is in ForceCassandraMode. This is a server fact, not a driver
+	// behaviour choice, so we check getScyllaSupported() directly instead of
+	// going through isScyllaConn() (which is gated by ForceCassandraMode).
+	if c.getScyllaSupported().nrShards != 0 {
 		c.setSchemaV2(false)
 	}
 

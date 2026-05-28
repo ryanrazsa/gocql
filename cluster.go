@@ -273,11 +273,14 @@ type ClusterConfig struct {
 	// When enabled, the driver will:
 	//   - Use the default Cassandra connection pool (no per-shard scyllaConnPicker)
 	//   - Not connect to the shard-aware port
-	//   - Not query Scylla's system_request_timeout
-	//   - Query system.peers_v2 first (will fail on Scylla and fall back to system.peers,
-	//     producing one extra startup query per host)
+	//   - Not append the Scylla "USING TIMEOUT" CQL clause to system metadata queries
 	//   - Disable tablet-aware routing (token-aware routing falls back to vNode-style)
 	//   - Disable Scylla CDC stream metadata queries
+	//
+	// The driver still respects server-side facts that cannot be configured away.
+	// In particular, when the server actually is Scylla, the driver will still
+	// skip system.peers_v2 (which physically does not exist on Scylla) and use
+	// system.peers instead.
 	//
 	// Use this only if you specifically need to bypass Scylla optimisations, e.g. for
 	// debugging, A/B comparisons against Cassandra, or working around a Scylla-specific
