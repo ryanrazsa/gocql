@@ -361,7 +361,15 @@ func parseCQLProtocolExtensions(supported map[string][]string, logger StdLogger)
 }
 
 // isScyllaConn checks if conn is suitable for scyllaConnPicker.
+//
+// When ClusterConfig.ForceCassandraMode is true this always returns false, so
+// the driver treats the cluster as vanilla Cassandra: no per-shard connection
+// pool, no shard-aware port, no tablet routing, no Scylla-specific
+// system_request_timeout / system.peers_v2 skip, no Scylla CDC metadata path.
 func (c *Conn) isScyllaConn() bool {
+	if c.session != nil && c.session.cfg.ForceCassandraMode {
+		return false
+	}
 	return c.getScyllaSupported().nrShards != 0
 }
 

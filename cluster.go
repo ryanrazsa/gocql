@@ -266,6 +266,32 @@ type ClusterConfig struct {
 	// this option to work around the issue. Set it to true only if you neither can fix
 	// your network nor disable shard-aware port on your nodes.
 	DisableShardAwarePort bool
+	// ForceCassandraMode disables all Scylla-specific driver behaviour and makes the
+	// driver treat the cluster as a vanilla Cassandra cluster, even if the server
+	// advertises Scylla extensions in the SUPPORTED frame.
+	//
+	// When enabled, the driver will:
+	//   - Use the default Cassandra connection pool (no per-shard scyllaConnPicker)
+	//   - Not connect to the shard-aware port
+	//   - Not append the Scylla "USING TIMEOUT" CQL clause to system metadata queries
+	//   - Disable tablet-aware routing (token-aware routing falls back to vNode-style)
+	//   - Disable Scylla CDC stream metadata queries
+	//
+	// The driver still respects server-side facts that cannot be configured away.
+	// In particular, when the server actually is Scylla, the driver will still
+	// skip system.peers_v2 (which physically does not exist on Scylla) and use
+	// system.peers instead.
+	//
+	// Use this only if you specifically need to bypass Scylla optimisations, e.g. for
+	// debugging, A/B comparisons against Cassandra, or working around a Scylla-specific
+	// driver bug. On a real Scylla cluster this will be measurably slower than the
+	// default; on a Cassandra cluster it has no effect.
+	//
+	// This is independent of DisableShardAwarePort: setting ForceCassandraMode = true
+	// makes DisableShardAwarePort redundant but does not override it.
+	//
+	// Default: false
+	ForceCassandraMode bool
 	// If DisableInitialHostLookup then the driver will not attempt to get host info
 	// from the system.peers table, this will mean that the driver will connect to
 	// hosts supplied and will not attempt to lookup the hosts information, this will

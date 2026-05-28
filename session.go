@@ -318,7 +318,7 @@ func (s *Session) init() error {
 
 		conn := s.control.getConn().conn.(*Conn)
 		conn.mu.Lock()
-		s.tabletsRoutingV1 = conn.isTabletSupported()
+		s.tabletsRoutingV1 = !s.cfg.ForceCassandraMode && conn.isTabletSupported()
 		conn.mu.Unlock()
 
 		s.hostSource.setControlConn(s.control)
