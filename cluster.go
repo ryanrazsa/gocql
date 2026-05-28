@@ -266,22 +266,26 @@ type ClusterConfig struct {
 	// this option to work around the issue. Set it to true only if you neither can fix
 	// your network nor disable shard-aware port on your nodes.
 	DisableShardAwarePort bool
-	// ForceCassandraMode disables Scylla-specific driver optimisations and makes the
-	// driver use the default Cassandra-style connection pool (one round-robin pool per
-	// host) instead of the per-shard scyllaConnPicker. As a side effect, the driver
-	// will not connect to the shard-aware port either, because that path is owned by
-	// the shard-aware picker.
+	// ForceCassandraMode disables all Scylla-specific driver behaviour and makes the
+	// driver treat the cluster as a vanilla Cassandra cluster, even if the server
+	// advertises Scylla extensions in the SUPPORTED frame.
 	//
-	// Use this if you want to bypass Scylla's per-shard connection routing and fall
-	// back to vanilla Cassandra connection behaviour, e.g. for debugging, A/B
-	// comparisons, or working around a Scylla-specific driver issue.
+	// When enabled, the driver will:
+	//   - Use the default Cassandra connection pool (no per-shard scyllaConnPicker)
+	//   - Not connect to the shard-aware port
+	//   - Not query Scylla's system_request_timeout
+	//   - Query system.peers_v2 first (will fail on Scylla and fall back to system.peers,
+	//     producing one extra startup query per host)
+	//   - Disable tablet-aware routing (token-aware routing falls back to vNode-style)
+	//   - Disable Scylla CDC stream metadata queries
+	//
+	// Use this only if you specifically need to bypass Scylla optimisations, e.g. for
+	// debugging, A/B comparisons against Cassandra, or working around a Scylla-specific
+	// driver bug. On a real Scylla cluster this will be measurably slower than the
+	// default; on a Cassandra cluster it has no effect.
 	//
 	// This is independent of DisableShardAwarePort: setting ForceCassandraMode = true
-	// makes DisableShardAwarePort redundant but does not unset it.
-	//
-	// Note: this is the "narrow" fallback. Other Scylla-specific code paths (tablet
-	// routing, system_request_timeout lookup, CDC metadata, skipping system.peers_v2)
-	// still apply when talking to a Scylla cluster.
+	// makes DisableShardAwarePort redundant but does not override it.
 	//
 	// Default: false
 	ForceCassandraMode bool
